@@ -11,7 +11,7 @@
 ///////////////////////////////////////////////////////////
 
 #include "checkboxlist.h"
-#include <QtGui>
+#include <QtWidgets>
 
 
 // internal private delegate
