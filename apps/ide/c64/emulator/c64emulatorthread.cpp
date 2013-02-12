@@ -282,7 +282,7 @@ void C64EmulatorThread::resetEmulator()
          if ( addr > 0 )
          {
             request = "load \"" + fileName + "\" 0";
-            addToRequestQueue(request.toAscii(),true);
+            addToRequestQueue(request.toLatin1(),true);
             request = "r pc = $" + QString::number(addr,16);
             addToRequestQueue(request,false);
             addToRequestQueue("r",true);
@@ -300,7 +300,7 @@ void C64EmulatorThread::resetEmulator()
          addToRequestQueue("until $a474",false);
          addToRequestQueue("reset",true);
          request = "autostart \"" + fileName + "\"";
-         addToRequestQueue(request.toAscii(),true);
+         addToRequestQueue(request.toLatin1(),true);
          addToRequestQueue("r",true);
          addToRequestQueue("io",true);
          addToRequestQueue("m $0 $cfff",true);
@@ -509,7 +509,7 @@ void C64EmulatorThread::processTraps(QString traps)
       if ( trap.contains(bpRegex) && (bpRegex.captureCount() == 2) )
       {
          qDebug("TRAP:");
-         qDebug(trap.toAscii().constData());
+         qDebug(trap.toLatin1().constData());
 
          // Figure out which breakpoint hit this is.
          for ( bp = 0; bp < pBreakpoints->GetNumBreakpoints(); bp++ )
@@ -575,7 +575,7 @@ void C64EmulatorThread::processResponses(QStringList requests,QStringList respon
          {
             str += responses.at(resp);
          }
-         qDebug(str.toAscii().constData());
+         qDebug(str.toLatin1().constData());
       }
    }
 #endif
@@ -685,9 +685,9 @@ void C64EmulatorThread::processResponses(QStringList requests,QStringList respon
          QString responseHeader = responseLines.at(0);
          QString responseData = responseLines.at(1);
 
-//         qDebug(responseHeader.toAscii().constData());
+//         qDebug(responseHeader.toLatin1().constData());
          responseHeader.remove(QRegExp("^([ \r\n\t]*[(]C:[$][0-9a-f]+[)])*"));
-//         qDebug(responseData.toAscii().constData());
+//         qDebug(responseData.toLatin1().constData());
          responseData.remove(QRegExp("^([ \r\n\t]*[(]C:[$][0-9a-f]+[)])*"));
 
          QStringList responseHeaderParts = responseHeader.split(QRegExp("[ \t\n]"),QString::SkipEmptyParts);
@@ -852,7 +852,7 @@ TcpClient::~TcpClient()
 void TcpClient::error(QAbstractSocket::SocketError error)
 {
    qDebug("SOCKET ERROR");
-   qDebug(QString::number((int)error).toAscii().constData());
+   qDebug(QString::number((int)error).toLatin1().constData());
    switch ( error )
    {
    case QAbstractSocket::ConnectionRefusedError:
@@ -892,8 +892,8 @@ void TcpClient::connected()
    if ( m_requests.count() )
    {
       // Kick off writing anything that's been queued.
-      qDebug(m_requests.at(0).toAscii().constData());
-      pSocket->write(m_requests.at(0).toAscii());
+      qDebug(m_requests.at(0).toLatin1().constData());
+      pSocket->write(m_requests.at(0).toLatin1());
       qDebug("requests were pending");
    }
    m_clientMutex->unlock();
@@ -926,8 +926,8 @@ void TcpClient::sendRequests(QStringList requests,QList<int> expectings)
         (pSocket->state() == QAbstractSocket::ConnectedState) )
    {
       // Kick off if nothing going on.
-      qDebug(m_requests.at(0).toAscii().constData());
-      pSocket->write(m_requests.at(0).toAscii());
+      qDebug(m_requests.at(0).toLatin1().constData());
+      pSocket->write(m_requests.at(0).toLatin1());
       m_requestSent.replace(0,true);
    }
    m_clientMutex->unlock();
@@ -974,8 +974,8 @@ void TcpClient::readyRead()
       m_request++;
       if ( m_requests.at(m_request) != "END" )
       {
-         qDebug(m_requests.at(m_request).toAscii().constData());
-         pSocket->write(m_requests.at(m_request).toAscii());
+         qDebug(m_requests.at(m_request).toLatin1().constData());
+         pSocket->write(m_requests.at(m_request).toLatin1());
          m_requestSent.replace(m_request,true);
       }
       else
@@ -1006,8 +1006,8 @@ void TcpClient::readyRead()
          // they'll be processed by the next bundle's arrival.
          if ( m_requests.count() )
          {
-            qDebug(m_requests.at(0).toAscii().constData());
-            pSocket->write(m_requests.at(0).toAscii());
+            qDebug(m_requests.at(0).toLatin1().constData());
+            pSocket->write(m_requests.at(0).toLatin1());
          }
       }
       m_clientMutex->unlock();
@@ -1018,7 +1018,7 @@ void TcpClient::readyRead()
 void TcpClient::bytesWritten(qint64 /*bytes*/)
 {
 //   qDebug("bytesWritten");
-//   qDebug(QString::number(bytes).toAscii().constData());
+//   qDebug(QString::number(bytes).toLatin1().constData());
 }
 
 bool C64EmulatorThread::serialize(QDomDocument& /*doc*/, QDomNode& /*node*/)
