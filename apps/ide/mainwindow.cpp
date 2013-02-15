@@ -47,27 +47,27 @@ MainWindow::MainWindow(CProjectModel *projectModel, QWidget* parent) :
       envdat += "/GnuWin32/bin;";
       envdat += QCoreApplication::applicationDirPath();
       envdat += "/cc65-snapshot/bin;";
-      qputenv("PATH",QString(envdat+envvar).toAscii());
+      qputenv("PATH",QString(envdat+envvar).toLatin1());
 
       envdat = QCoreApplication::applicationDirPath();
       envdat += "/cc65-snapshot";
-      qputenv("CC65_HOME",envdat.toAscii());
+      qputenv("CC65_HOME",envdat.toLatin1());
 
       envdat = QCoreApplication::applicationDirPath();
       envdat += "/cc65-snapshot/lib";
-      qputenv("LD65_LIB",envdat.toAscii());
+      qputenv("LD65_LIB",envdat.toLatin1());
 
       envdat = QCoreApplication::applicationDirPath();
       envdat += "/cc65-snapshot/lib";
-      qputenv("LD65_OBJ",envdat.toAscii());
+      qputenv("LD65_OBJ",envdat.toLatin1());
 
       envdat = QCoreApplication::applicationDirPath();
       envdat += "/cc65-snapshot/asminc";
-      qputenv("CC65_ASMINC",envdat.toAscii());
+      qputenv("CC65_ASMINC",envdat.toLatin1());
 
       envdat = QCoreApplication::applicationDirPath();
       envdat += "/cc65-snapshot/asminc";
-      qputenv("CC65_INC",envdat.toAscii());
+      qputenv("CC65_INC",envdat.toLatin1());
 
    }
 

@@ -3,6 +3,7 @@
 
 #include <QFileInfo>
 #include <QUrl>
+#include <QMimeData>
 
 MainWindow::MainWindow(QWidget *parent) :
       QMainWindow(parent),

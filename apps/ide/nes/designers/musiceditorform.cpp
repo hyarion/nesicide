@@ -40,7 +40,7 @@ void MusicEditorForm::onSave()
 {
    CDesignerEditorBase::onSave();
 
-   m_pDocument->OnSaveDocument((TCHAR*)m_fileName.toAscii().constData()); 
+   m_pDocument->OnSaveDocument((TCHAR*)m_fileName.toLatin1().constData()); 
    
    setModified(false);
 }
