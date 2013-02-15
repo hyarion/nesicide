@@ -12,6 +12,9 @@
 #include <QRegion>
 #include <QFrame>
 #include <QComboBox>
+#include <QMutex>
+#include <QString>
+#include <QFile>
 
 // get rid of MFC crap
 // Releasing pointers
@@ -27,33 +30,17 @@
                 p = NULL;       \
         }       \
 
-// MFC "replacements" (so I don't have to change FamiTracker code I don't want to change...)
-typedef unsigned char BYTE;
-typedef unsigned short WORD;
-typedef long unsigned int DWORD;
-typedef DWORD COLORREF;
-typedef wchar_t WCHAR;
-typedef WCHAR TCHAR;
-typedef const TCHAR *LPCTSTR;
-typedef TCHAR *LPTSTR;
-typedef int WINBOOL;
-typedef WINBOOL BOOL;
-typedef unsigned int UINT;
-typedef unsigned int *PUINT;
-typedef unsigned long long ULONGLONG;
+#include <windows.h>
 
 #ifdef UNICODE
 #define _T(x) L##x
 #else
 #define _T(x) x
 #endif 
-#define TRACE0(x) { QString str; str.sprintf("TRACE0: %s(%d): %s",__FILE__,__LINE__, (x)); qDebug(str.toAscii().constData()); }
+#ifndef TRACE0
+#define TRACE0(msg) qDebug()
+#endif
 
-#define RGB(r,g,b) ((COLORREF)((BYTE)(r)|((BYTE)(g) << 8)|((BYTE)(b) << 16)))
-
-#include <QMutex>
-#include <QString>
-#include <QFile>
 
 class CSemaphore
 {
@@ -66,34 +53,27 @@ class CString
 public:
    CString();
    CString(const CString& ref);
-   CString(char* str);
-   CString(const char* str);
-   CString(TCHAR* str);
-   CString(const TCHAR* str);
+   CString(LPCTSTR str);
    CString(QString str);
    virtual ~CString();
 
-   void AppendFormat(const char* fmt, ...);
-   void AppendFormatV(const char* fmt, va_list ap);
    void AppendFormat(LPCTSTR fmt, ...);
    void AppendFormatV(LPCTSTR fmt, va_list ap);
-   void Format(const char* fmt, ...);
-   void FormatV(const char* fmt, va_list ap);
    void Format(LPCTSTR fmt, ...);
    void FormatV(LPCTSTR fmt, va_list ap);
 
-   CString& operator=(const char* str);
-   CString& operator+=(const char* str);
-   CString& operator=(TCHAR* str);
-   CString& operator+=(TCHAR* str);
+   CString& operator=(LPTSTR str);
+   CString& operator+=(LPTSTR str);
+   CString& operator=(LPCTSTR str);
+   CString& operator+=(LPCTSTR str);
    CString& operator=(QString str);
    CString& operator+=(QString str);
    CString& operator=(CString str);
    CString& operator+=(CString str);
    bool operator==(const CString& str) const;
-   operator const char*() const;
+   //operator const char*() const;
    operator const QString&() const;
-   operator const TCHAR*() const;
+   operator const LPTSTR() const;
 
    void Empty();
    const char* GetString() const;
@@ -160,8 +140,6 @@ private:
    QFile _qfile;
 };
 
-#include <windows.h>
-
 class CPoint : public tagPOINT
 {
 public:
@@ -181,8 +159,6 @@ public:
       y = _y;
    }
 
-//   int x;
-//   int y;
 };
 
 class CRect
@@ -736,8 +712,8 @@ class CWinApp
 
 #define afx_msg 
 
-#define max(a,b) (((a) > (b)) ? (a) : (b))
-#define min(a,b) (((a) > (b)) ? (b) : (a))
+//#define max(a,b) (((a) > (b)) ? (a) : (b))
+//#define min(a,b) (((a) > (b)) ? (b) : (a))
 
 #ifdef QT_NO_DEBUG
 #define ASSERT(y)
