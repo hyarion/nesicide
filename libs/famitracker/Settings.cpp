@@ -234,7 +234,7 @@ void CSettings::StoreSetting(CString Section, CString Name, int Value) const
    key += "/";
    key += Name.GetString();
    qDebug("StoreSetting");
-   qDebug(key.toAscii().constData());
+   qDebug(key.toLatin1().constData());
    
    settings.setValue(key,Value);
 }
@@ -247,7 +247,7 @@ int CSettings::LoadSetting(CString Section, CString Name, int Default) const
    key += "/";
    key += Name.GetString();
    qDebug("LoadSetting");
-   qDebug(key.toAscii().constData());
+   qDebug(key.toLatin1().constData());
    
    return settings.value(key,Default).toInt();
 }
@@ -262,7 +262,7 @@ void CSettingBool::Load()
    key += "/";
    key += (char*)m_pEntry;
    qDebug("CSettingBool::Load");
-   qDebug(key.toAscii().constData());
+   qDebug(key.toLatin1().constData());
    
    *(bool*)m_pVariable = settings.value(key,m_bDefaultValue).toInt() == 1;
 }
@@ -275,7 +275,7 @@ void CSettingBool::Save()
    key += "/";
    key += (char*)m_pEntry;
    qDebug("CSettingBool::Save");
-   qDebug(key.toAscii().constData());
+   qDebug(key.toLatin1().constData());
    
    settings.setValue(key,*(bool*)m_pVariable);
 }
@@ -293,7 +293,7 @@ void CSettingInt::Load()
    key += "/";
    key += (char*)m_pEntry;
    qDebug("CSettingInt::Load");
-   qDebug(key.toAscii().constData());
+   qDebug(key.toLatin1().constData());
    
    *(int*)m_pVariable = settings.value(key,m_iDefaultValue).toInt();
 }
@@ -306,7 +306,7 @@ void CSettingInt::Save()
    key += "/";
    key += (char*)m_pEntry;
    qDebug("CSettingInt::Save");
-   qDebug(key.toAscii().constData());
+   qDebug(key.toLatin1().constData());
    
    settings.setValue(key,*(int*)m_pVariable);
 }
@@ -324,9 +324,9 @@ void CSettingString::Load()
    key += "/";
    key += (char*)m_pEntry;
    qDebug("CSettingString::Load");
-   qDebug(key.toAscii().constData());
+   qDebug(key.toLatin1().constData());
    
-   m_pVariable = (char*)settings.value(key,m_pDefaultValue).toString().toAscii().data();
+   m_pVariable = (char*)settings.value(key,m_pDefaultValue).toString().toLatin1().data();
 }
 
 void CSettingString::Save()
@@ -337,7 +337,7 @@ void CSettingString::Save()
    key += "/";
    key += (char*)m_pEntry;
    qDebug("CSettingString::Save");
-   qDebug(key.toAscii().constData());
+   qDebug(key.toLatin1().constData());
    
    settings.setValue(key,(char*)m_pVariable);
 }

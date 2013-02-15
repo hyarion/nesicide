@@ -208,7 +208,7 @@ void CString::Empty()
 
 const char* CString::GetString() const
 {
-   return _qstr.toAscii().constData();
+   return _qstr.toLatin1().constData();
 }
 
 LPTSTR CString::GetBuffer() const
@@ -218,12 +218,12 @@ LPTSTR CString::GetBuffer() const
 
 CString CString::Left( int nCount ) const
 {
-   return CString(_qstr.left(nCount).toAscii().data());
+   return CString(_qstr.left(nCount).toLatin1().data());
 }
 
 CString CString::Right( int nCount ) const
 {
-   return CString(_qstr.right(nCount).toAscii().data());
+   return CString(_qstr.right(nCount).toLatin1().data());
 }
 
 int CString::GetLength() const
@@ -238,7 +238,7 @@ int CString::CompareNoCase( LPCTSTR lpsz ) const
 
 TCHAR CString::GetAt( int nIndex ) const
 {
-   return _qstr.at(nIndex).toAscii();
+   return _qstr.at(nIndex).toLatin1();
 }
 
 /*
@@ -704,7 +704,7 @@ BOOL CDC::TextOut(
    rect.setBottomRight(QPoint(x+fontMetrics.size(Qt::TextSingleLine,qstr.left(nCount)).width()+10,y+fontMetrics.height()));
    rect.translate(-QPoint(_windowOrg.x,_windowOrg.y));
    _qpainter->setPen(QPen(_textColor));
-   _qpainter->drawText(rect,qstr.left(nCount).toAscii().constData());
+   _qpainter->drawText(rect,qstr.left(nCount).toLatin1().constData());
 }
 BOOL CDC::TextOut(
    int x,

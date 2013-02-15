@@ -365,26 +365,26 @@ void CMainFrame::on_songs_currentIndexChanged(int index)
 void CMainFrame::on_title_textEdited(const QString &arg1)
 {
    CFamiTrackerDoc* pDoc = GetDocument();
-   pDoc->SetSongName(arg1.toAscii().data());
+   pDoc->SetSongName(arg1.toLatin1().data());
 }
 
 void CMainFrame::on_author_textEdited(const QString &arg1)
 {
    CFamiTrackerDoc* pDoc = GetDocument();
-   pDoc->SetSongArtist(arg1.toAscii().data());
+   pDoc->SetSongArtist(arg1.toLatin1().data());
 }
 
 void CMainFrame::on_copyright_textEdited(const QString &arg1)
 {
    CFamiTrackerDoc* pDoc = GetDocument();
-   pDoc->SetSongCopyright(arg1.toAscii().data());
+   pDoc->SetSongCopyright(arg1.toLatin1().data());
 }
 
 void CMainFrame::setFileName(QString fileName)
 {
    m_fileName = fileName;
 
-   GetDocument()->OnOpenDocument((TCHAR*)fileName.toAscii().constData());
+   GetDocument()->OnOpenDocument((TCHAR*)fileName.toLatin1().constData());
 }
 
 void CMainFrame::SetRowCount(int Count)

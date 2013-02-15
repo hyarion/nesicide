@@ -38,7 +38,7 @@ bool FamiTrackerModuleImportDialog::loadFile(QString path)
    CString TrackTitle;
    int idx;
    
-   m_pImportedDoc = m_pDocument->LoadImportFile((LPCTSTR)path.toAscii().constData());
+   m_pImportedDoc = m_pDocument->LoadImportFile((LPCTSTR)path.toLatin1().constData());
    
    // Check if load failed
 	if (m_pImportedDoc == NULL)
