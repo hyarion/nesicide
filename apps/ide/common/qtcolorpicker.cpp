@@ -46,15 +46,15 @@
 
 #include <QtCore/QMap>
 #include <QtGui/QPainter>
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QDesktopWidget>
-#include <QtWidgets/QPushButton>
-#include <QtWidgets/QColorDialog>
-#include <QtWidgets/QLayout>
-#include <QtWidgets/QStyle>
-#include <QtWidgets/QLabel>
-#include <QtWidgets/QToolTip>
-#include <QtWidgets/QGridLayout>
+#include <QApplication>
+#include <QDesktopWidget>
+#include <QPushButton>
+#include <QColorDialog>
+#include <QLayout>
+#include <QStyle>
+#include <QLabel>
+#include <QToolTip>
+#include <QGridLayout>
 #include <QtGui/QPixmap>
 #include <QtGui/QFocusEvent>
 #include <QtGui/QPaintEvent>

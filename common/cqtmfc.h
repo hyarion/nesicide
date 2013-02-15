@@ -31,6 +31,7 @@
         }       \
 
 #include <windows.h>
+#undef select
 
 #ifdef UNICODE
 #define _T(x) L##x
