@@ -37,12 +37,7 @@ public:
 public:
    CFrameEditor *GetFrameEditor() const;
    void setFileName(QString fileName);
-      
-   // CFrameWnd stuff
-   virtual CView* GetActiveView();
-   virtual CFamiTrackerDoc* GetDocument() { return m_pDocument; }
-   virtual CFamiTrackerDoc* GetActiveDocument() { return m_pDocument; }
-   
+         
    // Operations
    public:
    
@@ -82,12 +77,16 @@ public:
    CAction *GetLastAction() const;
    void	ResetUndo();
 
+   void	SetSpeed(int Speed);
+	void	SetTempo(int Tempo);
    void	SetRowCount(int Count);
 	void	SetFrameCount(int Count);
    
 protected:
+   void focusInEvent(QFocusEvent *);
    void showEvent(QShowEvent *);
    void hideEvent(QHideEvent *);
+   void resizeEvent(QResizeEvent *);
 
 private:
    // Qt stuff
@@ -100,6 +99,7 @@ private:
    CFamiTrackerView* m_pView;
    CMusicFamiTrackerInstrumentsModel *instrumentsModel;
    QString m_fileName;
+   bool initialized;
 
    CActionHandler* m_pActionHandler;
    int					m_iFrameEditorPos;
@@ -161,6 +161,8 @@ signals:
    void addToolBarWidget(QToolBar* toolBar);
    void removeToolBarWidget(QToolBar* toolBar);
    void editor_modificationChanged(bool m);
+private slots:
+   void on_frameChangeAll_clicked(bool checked);
 };
 
 // Global DPI functions

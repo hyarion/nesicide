@@ -36,7 +36,7 @@ class CFrameEditor;
 class CFrameEditor : public CWnd
 {
    Q_OBJECT
-//	DECLARE_DYNAMIC(CFrameEditor)
+	DECLARE_DYNAMIC(CFrameEditor)
 public:
 	CFrameEditor(CMainFrame *pMainFrm);
 	virtual ~CFrameEditor();
@@ -52,6 +52,7 @@ protected:
    void mouseMoveEvent(QMouseEvent *event);
    void mouseReleaseEvent(QMouseEvent *event);
    void mouseDoubleClickEvent(QMouseEvent *event);
+   void wheelEvent(QWheelEvent *event);
    void keyPressEvent(QKeyEvent *event);
    void resizeEvent(QResizeEvent *event);
    void timerEvent(QTimerEvent *event);
@@ -91,7 +92,7 @@ private:
 //	HACCEL m_hAccel;
 
 protected:
-//	DECLARE_MESSAGE_MAP()
+	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnPaint();
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
@@ -123,6 +124,19 @@ public slots:
 private slots:
    void on_verticalScrollBar_actionTriggered(int action);
    void on_horizontalScrollBar_actionTriggered(int action);
+public: 
+   // Reimplements of CWnd functionality that unfortunately can't easily be moved there...
+   void SetScrollRange(
+      int nBar,
+      int nMinPos,
+      int nMaxPos,
+      BOOL bRedraw = TRUE 
+   );
+   int SetScrollPos(
+      int nBar,
+      int nPos,
+      BOOL bRedraw = TRUE 
+   );
 };
 
 

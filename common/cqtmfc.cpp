@@ -4,9 +4,14 @@
 
 #include <QLinearGradient>
 
-size_t strlen(const TCHAR* str)
+size_t strlen(const wchar_t* str)
 {
-   return strlen((const char*)str);
+   int len = 0;
+   if ( str )
+   {
+      while ( *(str+len) ) { ++len; }
+   }
+   return len;
 }
 
 /*
@@ -41,6 +46,12 @@ CString::CString(const CString& ref)
    _qstr = ref._qstr;
 }
 
+CString::CString(const char* str)
+{
+   _qstr.clear();
+   _qstr = str;
+}
+
 CString::~CString()
 {
    _qstr.clear();
@@ -57,7 +68,6 @@ void CString::Format(LPCTSTR fmt, ...)
 void CString::FormatV(LPCTSTR fmt, va_list ap)
 {
    // CPTODO: UN-HACK!!!
-   TCHAR local[2048];
 #if UNICODE
    WCHAR local[2048];
    wvsprintf(local,fmt,ap);
@@ -91,6 +101,19 @@ void CString::AppendFormatV(LPCTSTR fmt, va_list ap)
    _qstr += QString(local);
 #endif
 //   _qstr.vsprintf((const char*)fmt,ap);
+}
+
+CString& CString::operator=(const char* str)
+{
+   _qstr.clear();
+   _qstr = QString(str);
+   return *this;
+}
+
+CString& CString::operator+=(const char* str)
+{
+   _qstr.append(QString(str));
+   return *this;
 }
 
 CString& CString::operator=(LPTSTR str)
@@ -181,14 +204,22 @@ void CString::Empty()
    _qstr.clear(); 
 }
 
-LPCTSTR CString::GetString() const
+PCSTR CString::GetString() const
 {
    return _qstr.toLatin1().constData();
 }
-
-LPTSTR CString::GetBuffer() const
+LPCWSTR CString::GetString() const
 {
-   return (LPTSTR)_qstr.unicode();
+   return (LPCWSTR)_qstr.unicode();
+}
+
+PCSTR CString::GetBuffer() const
+{
+   return _qstr.toLatin1().constData();
+}
+LPWSTR CString::GetBuffer() const
+{
+   return (LPWSTR)_qstr.unicode();
 }
 
 CString CString::Left( int nCount ) const
@@ -231,7 +262,7 @@ CFile::CFile()
 CFile::CFile(CString& lpszFileName, int nOpenFlags)
 {
    QFile::OpenMode flags;
-   _qfile.setFileName((const char*)lpszFileName);
+   _qfile.setFileName(QString::fromWCharArray(lpszFileName.GetString()));
    if ( nOpenFlags&modeRead ) flags = QIODevice::ReadOnly;
    if ( nOpenFlags&modeWrite ) flags = QIODevice::WriteOnly;
    if ( nOpenFlags&modeCreate ) flags |= QIODevice::Truncate;
@@ -702,7 +733,7 @@ BOOL CDC::TextOut(
    QRect rect;
    QFontMetrics fontMetrics((QFont)*_font);
    rect.setTopLeft(QPoint(x,y));
-   rect.setBottomRight(QPoint(x+fontMetrics.size(Qt::TextSingleLine,str.GetString()).width()+10,y+fontMetrics.height()));
+   rect.setBottomRight(QPoint(x+fontMetrics.size(Qt::TextSingleLine,QString::fromWCharArray(str.GetString())).width()+10,y+fontMetrics.height()));
    rect.translate(-QPoint(_windowOrg.x,_windowOrg.y));
    _qpainter->setPen(QPen(_textColor));
 #ifdef UNICODE
@@ -720,7 +751,7 @@ void CComboBox::ResetContent()
 
 int CComboBox::AddString(CString& text)
 {
-   addItem(text.GetString());
+   addItem(QString::fromWCharArray(text.GetString()));
 }
 
 void CComboBox::SetCurSel(int sel)
@@ -728,15 +759,86 @@ void CComboBox::SetCurSel(int sel)
    setCurrentIndex(sel);
 }
 
-QMap<int,int> CWnd::mfcToQtTimer;
+CWnd* CWnd::focusWnd = NULL;
 
-UINT CWnd::SetTimer(void* id, UINT interval, void*)
+UINT CWnd::SetTimer(UINT id, UINT interval, void*)
 {
    int qtId = startTimer(interval);
-   mfcToQtTimer.insert(qtId,(uintptr_t)id);
-   return startTimer(interval);
+   mfcToQtTimer.insert((int)id,qtId);
+   qtToMfcTimer.insert(qtId,(int)id);
+   return (UINT)id;
 }
 
-void CWnd::KillTimer(void*, UINT id)
+void CWnd::KillTimer(UINT id)
+{
+   if ( mfcToQtTimer.contains((int)id) )
+   {
+      killTimer(mfcToQtTimer.value((int)id));
+      qtToMfcTimer.remove(mfcToQtTimer.value((int)id));
+      mfcToQtTimer.remove((int)id);
+   }
+}
+
+CWinThread::CWinThread()
+{
+   InitInstance();
+}
+
+CWinThread::~CWinThread()
+{
+}
+
+BOOL CWinThread::CreateThread(
+   DWORD dwCreateFlags,
+   UINT nStackSize,
+   LPSECURITY_ATTRIBUTES lpSecurityAttrs 
+)
+{
+   qDebug("CreateThread");
+   start(QThread::InheritPriority);
+   return TRUE;
+}
+
+BOOL CWinThread::PostThreadMessage(
+   UINT message ,
+   WPARAM wParam,
+   LPARAM lParam 
+      )
+{
+   emit postThreadMessage(message,wParam,lParam); 
+}
+
+CDocTemplate::CDocTemplate(UINT f,CDocument* pDoc,CFrameWnd* pFrameWnd,CView* pView)
+{
+   m_pDoc = pDoc;
+   m_pFrameWnd = pFrameWnd;
+   m_pView = pView;
+   
+   m_pDoc->OnNewDocument();
+   
+   // Create linkages...
+   m_pDoc->privateSetDocTemplate(this);
+   m_pDoc->privateAddView(m_pView);
+   m_pView->privateSetDocument(m_pDoc);
+   m_pView->privateSetParentFrame(m_pFrameWnd);
+   m_pFrameWnd->privateSetActiveView(m_pView);
+   m_pFrameWnd->privateSetActiveDocument(m_pDoc);
+}
+
+CSingleDocTemplate::CSingleDocTemplate(UINT f,CDocument* pDoc,CFrameWnd* pFrameWnd,CView* pView)
+   : CDocTemplate(f,pDoc,pFrameWnd,pView)
+{
+}
+
+CDocument* CSingleDocTemplate::OpenDocumentFile(
+   LPCTSTR lpszPathName,
+   BOOL bMakeVisible 
+)
+{
+   m_pDoc->OnNewDocument();
+   return m_pDoc;
+}
+
+BOOL CWinApp::InitInstance()
 {
 }

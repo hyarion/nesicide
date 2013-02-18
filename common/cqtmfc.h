@@ -1,6 +1,7 @@
 #ifndef CQTMFC_H
 #define CQTMFC_H
 
+#include <QApplication>
 #include <QObject>
 #include <QWidget>
 #include <QPainter>
@@ -12,11 +13,20 @@
 #include <QRegion>
 #include <QFrame>
 #include <QComboBox>
-#include <QMutex>
-#include <QString>
+#include <QEvent>
+#include <QList>
+#include <QMap>
+#include <QPaintEvent>
+#include <QMouseEvent>
+#include <QKeyEvent>
+#include <QTimerEvent>
+#include <QWheelEvent>
+#include <QResizeEvent>
+#include <QObject>
+#include <QThread>
 #include <QFile>
+#include <QMutex>
 
-// get rid of MFC crap
 // Releasing pointers
 #define SAFE_RELEASE(p) \
         if (p != NULL) { \
@@ -30,8 +40,14 @@
                 p = NULL;       \
         }       \
 
+
+#if defined(Q_WS_WIN) || defined(Q_WS_WIN32)
+#define max(a,b) (((a) > (b)) ? (a) : (b))
+#define min(a,b) (((a) > (b)) ? (b) : (a))
+#endif
+
 // workaround to force ignore ms_abi errors, not needed as long as we don't link with other mfc implementations
-#if !Q_WS_WIN
+#if !defined(Q_WS_WIN) && !defined(Q_WS_WIN32)
 #if !__has_attribute(ms_abi)
 #define ms_abi
 #endif
@@ -45,16 +61,62 @@
 #else
 #define _T(x) x
 #endif 
-#ifndef TRACE0
-#define TRACE0(msg) qDebug()
+#if !defined(TRACE0)
+#define TRACE0(x) { QString str; str.sprintf("TRACE0: %s(%d): %s",__FILE__,__LINE__, (x)); qDebug(str.toAscii().constData()); }
+#endif
+#if !defined(TRACE)
+#define TRACE(x) { QString str; str.sprintf("TRACE0: %s(%d): %s",__FILE__,__LINE__, (x)); qDebug(str.toAscii().constData()); }
+#endif
+#if !defined(ATLTRACE2)
+#define ATLTRACE2(a,b,str,...)
 #endif
 
+#define POSITION int
+
+#define DECLARE_DYNCREATE(x) 
+#define DECLARE_MESSAGE_MAP()
+#define DECLARE_DYNAMIC(x)
+
+#define IDR_MAINFRAME 0xDEADBEEF
+#define RUNTIME_CLASS(x) new x
+
+#define afx_msg 
+
+#ifdef QT_NO_DEBUG
+#define ASSERT(y)
+#define ASSERT_VALID(y)
+#else
+#define ASSERT(y) { if (!(y)) { QString str; str.sprintf("ASSERT: %s(%d)",__FILE__,__LINE__); qDebug(str.toAscii().constData()); } }
+#define ASSERT_VALID(y) { if (!(y)) { QString str; str.sprintf("ASSERT: %s(%d)",__FILE__,__LINE__); qDebug(str.toAscii().constData()); } }
+#endif
+
+size_t strlen(const wchar_t* str);
+
+class CObject
+{
+public:
+   CObject() {}
+   virtual ~CObject() {}
+   virtual void DeleteObject() {}
+};
+
+class CCriticalSection
+{
+public:
+   void Lock() {}
+   void Unlock() {}
+};
+
+class CMutex : public QMutex
+{
+public:
+   void Lock() { lock(); }
+   void Unlock() { unlock(); }
+};
 
 class CSemaphore
 {
 };
-
-size_t strlen(const TCHAR* str);
 
 class CString
 {
@@ -63,6 +125,7 @@ public:
    CString(const CString& ref);
    CString(LPCTSTR str);
    CString(QString str);
+   CString(const char* str);
    virtual ~CString();
 
    void AppendFormat(LPCTSTR fmt, ...);
@@ -70,6 +133,8 @@ public:
    void Format(LPCTSTR fmt, ...);
    void FormatV(LPCTSTR fmt, va_list ap);
 
+   CString& operator=(const char* str);
+   CString& operator+=(const char* str);
    CString& operator=(LPTSTR str);
    CString& operator+=(LPTSTR str);
    CString& operator=(LPCTSTR str);
@@ -84,7 +149,7 @@ public:
    operator const LPTSTR() const;
 
    void Empty();
-   const char* GetString() const;
+   LPCTSTR GetString() const;
    LPTSTR GetBuffer() const;
    CString Left( int nCount ) const;
    CString Right( int nCount ) const;
@@ -205,14 +270,6 @@ public:
    }
 private:
    RECT _rect;
-};
-
-class CObject
-{
-public:
-   CObject() {}
-   virtual ~CObject() {}
-   virtual void DeleteObject() {}
 };
 
 class CGdiObject : public CObject
@@ -632,49 +689,21 @@ class CScrollBar
 {
 };
 
-class CCriticalSection
-{
-public:
-   void Lock() {}
-   void Unlock() {}
-};
-
-class CMutex : public QMutex
-{
-public:
-   void Lock() { lock(); }
-   void Unlock() { unlock(); }
-};
-
-class CView;
-class CDocument;
-class CFrameWnd : public QWidget
-{
-public:
-   CFrameWnd(QWidget* parent = 0) : QWidget(parent) {}
-   virtual ~CFrameWnd() {}
-   virtual CView* GetActiveView() = 0;
-   virtual void SetMessageText(LPCTSTR fmt,...) { qDebug("SetMessageText"); }
-   virtual CDocument* GetDocument() { return NULL; }
-};
-
+class CFrameWnd;
 class CWnd : public QWidget
 {
 public:
-   CWnd(QWidget* parent) : QWidget(parent) 
-   {
-      m_pFrameWnd = (CFrameWnd*)parent;
-   }
+   CWnd(QWidget* parent=0) : QWidget(parent), m_pFrameWnd(NULL) {}
 
-   CFrameWnd* GetParentFrame() const { return m_pFrameWnd; } 
-   void SetFocus(CWnd* p=0) { setFocus(); }
    void OnMouseMove(UINT,CPoint) {}
    void OnLButtonDblClk(UINT,CPoint) {}
+   void OnLButtonDown(UINT,CPoint) {}
    void OnLButtonUp(UINT,CPoint) {}
    void OnRButtonUp(UINT,CPoint) {}
+   BOOL OnMouseWheel(UINT,UINT,CPoint) { return TRUE; }
    void OnSize(UINT nType, int cx, int cy) {}
-   UINT SetTimer(void* id, UINT interval, void*);
-   void KillTimer(void*, UINT id);
+   UINT SetTimer(UINT id, UINT interval, void*);
+   void KillTimer(UINT id);
    void OnTimer(UINT timerId) {}
    void OnKeyDown(UINT,UINT,UINT) {}
    void OnSetFocus(CWnd*) {}
@@ -682,28 +711,85 @@ public:
    void OnVScroll(UINT,UINT,CScrollBar*) {}
    void OnHScroll(UINT,UINT,CScrollBar*) {}
    void OnUpdate(CWnd* p=0,UINT hint=0,CObject* o=0) { repaint(); }
-   void Invalidate(BOOL bErase = TRUE) {}
+   void Invalidate(BOOL bErase = TRUE) { /*update();*/ }
    void RedrawWindow(LPCRECT rect=0,CRgn* rgn=0,UINT f=0) { repaint(); }
+   CWnd* SetFocus() { CWnd* pWnd = focusWnd; setFocus(); return pWnd; }
+   CWnd* GetFocus() { return focusWnd; } 
+   void SetCapture(CWnd* p=0) { /* DON'T DO THIS grabMouse(); */ }
+   void ReleaseCapture() { /* DON'T DO THIS releaseMouse(); */ }
+   UINT_PTR mfcTimerId(int qtTimerId) { return qtToMfcTimer.value(qtTimerId); }
+   CFrameWnd* GetParentFrame( ) const { return m_pFrameWnd; }
+   void MoveWindow(int x,int y,int cx, int cy) { setFixedWidth(cx); }
+   
+   // These methods are only to be used in CDocTemplate initialization...
+   void privateSetParentFrame(CFrameWnd* pFrameWnd) { m_pFrameWnd = pFrameWnd; }
+protected:
+   QMap<UINT_PTR,int> mfcToQtTimer;
+   QMap<int,UINT_PTR> qtToMfcTimer;
+   CFrameWnd* m_pFrameWnd;
+   static CWnd* focusWnd;
+};
+
+class CView;
+class CDocument;
+class CFrameWnd : public CWnd
+{
+public:
+   CFrameWnd() : CWnd(), m_pView(NULL), m_pDocument(NULL) {}
+   virtual ~CFrameWnd() {}
+   virtual void SetMessageText(LPCTSTR fmt,...) { qDebug("SetMessageText"); }
+   CView* GetActiveView( ) const { return m_pView; } // Only one view for SDI
+   virtual CDocument* GetActiveDocument( ) { return m_pDocument; }   
+   
+   // These methods are only to be used in CDocTemplate initialization...
+   virtual void privateSetActiveView(CView* pView) { m_pView = pView; }
+   virtual void privateSetActiveDocument(CDocument* pDocument) { m_pDocument = pDocument; }
    
 protected:
-   static QMap<int,int> mfcToQtTimer;
+   CView* m_pView;
+   CDocument* m_pDocument;
+};
+
+class CDocTemplate;
+class CDocument
+{
+public:
+   CDocument() : m_pDocTemplate(NULL) {}
+   virtual BOOL OnNewDocument() { DeleteContents(); return TRUE; }
+   virtual BOOL OnSaveDocument(LPCTSTR lpszPathName) { return TRUE; }
+   virtual BOOL OnOpenDocument(LPCTSTR lpszPathName) { return TRUE; }
+   virtual void OnCloseDocument() {}
+   virtual void DeleteContents() {}
+   virtual void SetModifiedFlag(BOOL bModified = 1) {}
+   virtual void OnFileSave() {}
+   virtual POSITION GetFirstViewPosition() const { return (POSITION)-1; }
+   virtual CView* GetNextView(POSITION pos) const { return m_pViews.at((int)pos); }
+   CDocTemplate* GetDocTemplate() const { return m_pDocTemplate; }
+
+   // These methods are only to be used in CDocTemplate initialization...
+   virtual void privateSetDocTemplate(CDocTemplate* pDocTemplate) { m_pDocTemplate = pDocTemplate; }
+   virtual void privateAddView(CView* pView) { m_pViews.append(pView); }
    
-private:
-   CFrameWnd* m_pFrameWnd;
+protected:
+   CDocTemplate* m_pDocTemplate;
+   QList<CView*> m_pViews;
 };
 
 class CView : public CWnd
 {
 public:
-   CView(QWidget* parent) : CWnd(parent) {}
+   CView(QWidget* parent) : CWnd(parent), m_pDocument(NULL) {}
    virtual void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {}
    virtual void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags) {}  
    virtual void OnSysKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {}
    virtual void OnSysKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags) {}  
-};
+   CDocument* GetDocument() const { return m_pDocument; }
+   
+   // These methods are only to be used in CDocTemplate initialization...
+   void privateSetDocument(CDocument* pDocument) { m_pDocument = pDocument; }
 
-class CDocument
-{
+protected:
+   CDocument* m_pDocument;
 };
 
 class CComboBox : public QComboBox
@@ -714,14 +800,52 @@ public:
    void SetCurSel(int sel);
 };
 
-class CWinApp
+class CWinThread : public QThread
 {
+   Q_OBJECT
+public:
+   CWinThread();
+   virtual ~CWinThread();
+   BOOL CreateThread(
+      DWORD dwCreateFlags = 0,
+      UINT nStackSize = 0,
+      LPSECURITY_ATTRIBUTES lpSecurityAttrs = NULL 
+   );
+   BOOL PostThreadMessage(
+      UINT message ,
+      WPARAM wParam,
+      LPARAM lParam 
+         );
+   virtual BOOL InitInstance() { return FALSE; }
+   virtual BOOL ExitInstance() {}
+signals:
+   void postThreadMessage(unsigned int m,unsigned int w,unsigned int l);
+public slots:
+   void recvThreadMessage(unsigned int m,unsigned int w,unsigned int l) { qDebug("CWinThread::recvThreadMessage"); }
 };
 
-#define afx_msg 
+class CDocTemplate
+{
+public:
+   CDocTemplate(UINT f,CDocument* pDoc,CFrameWnd* pFrameWnd,CView* pView);
+   virtual CDocument* OpenDocumentFile(
+      LPCTSTR lpszPathName,
+      BOOL bMakeVisible = TRUE 
+   ) = 0;
+   CDocument* m_pDoc;
+   CView*     m_pView;
+   CFrameWnd* m_pFrameWnd;
+};
 
-//#define max(a,b) (((a) > (b)) ? (a) : (b))
-//#define min(a,b) (((a) > (b)) ? (b) : (a))
+class CSingleDocTemplate : public CDocTemplate
+{
+public:
+   CSingleDocTemplate(UINT f,CDocument* pDoc,CFrameWnd* pFrameWnd,CView* pView);
+   virtual CDocument* OpenDocumentFile(
+      LPCTSTR lpszPathName,
+      BOOL bMakeVisible = TRUE 
+   );
+};
 
 #ifdef QT_NO_DEBUG
 #define ASSERT(y)
@@ -730,5 +854,17 @@ class CWinApp
 #define ASSERT(y) { if (!(y)) { QString str; str.sprintf("ASSERT: %s(%d)",__FILE__,__LINE__); qDebug(str.toLatin1().constData()); } }
 #define ASSERT_VALID(y) { if (!(y)) { QString str; str.sprintf("ASSERT: %s(%d)",__FILE__,__LINE__); qDebug(str.toLatin1().constData()); } }
 #endif
+class CWinApp : public CWinThread
+{
+public:
+   CWinApp() : m_pDocTemplate(NULL), m_pMainWnd(NULL) {}
+   void AddDocTemplate(CDocTemplate* pDocTemplate) { m_pDocTemplate = pDocTemplate; }
+   CDocTemplate* GetDocTemplate() const { return m_pDocTemplate; }
+   virtual BOOL InitInstance();
+   CFrameWnd* m_pMainWnd;
+   
+protected:
+   CDocTemplate* m_pDocTemplate;
+};
 
 #endif // CQTMFC_H

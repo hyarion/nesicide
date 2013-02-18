@@ -33,10 +33,12 @@ void ScaleMouse(CPoint &pt)
 }
 
 CMainFrame::CMainFrame(QWidget *parent) :
-   CFrameWnd(parent),
+   CFrameWnd(),
    ui(new Ui::CMainFrame),
    m_iInstrument(0),
-   m_iTrack(0)
+   m_iTrack(0),
+   m_pFrameEditor(0),
+   initialized(false)
 {
    int idx;
    int col;
@@ -48,23 +50,7 @@ CMainFrame::CMainFrame(QWidget *parent) :
 
 	m_iFrameEditorPos = FRAME_EDIT_POS_TOP;
          
-   m_pDocument = new CFamiTrackerDoc();
-   m_pDocument->SetTitle("Untitled");
-   
-   m_pView = new CFamiTrackerView(this);
-   
-   // Create frame editor
-	m_pFrameEditor = new CFrameEditor(this);
-
-   ui->songFrames->layout()->addWidget(m_pFrameEditor);
-   
-   ui->songPatterns->layout()->addWidget(m_pView->GetPatternView());
-
-   m_pFrameEditor->setFocusPolicy(Qt::StrongFocus);
-   m_pFrameEditor->setFocusProxy(m_pView->GetPatternView());
    m_pActionHandler = new CActionHandler();
-
-   m_pView->OnInitialUpdate();
 
    actionHandler actionHandlers[] = 
    {
@@ -122,8 +108,8 @@ CMainFrame::CMainFrame(QWidget *parent) :
    octaveComboBox->addItem("7");
    toolBar->addWidget(octaveComboBox);
 
-   instrumentsModel = new CMusicFamiTrackerInstrumentsModel(m_pDocument);
-
+   instrumentsModel = new CMusicFamiTrackerInstrumentsModel();
+   
    ui->songInstruments->setModel(instrumentsModel);
 
 #ifdef Q_WS_MAC
@@ -137,9 +123,6 @@ CMainFrame::CMainFrame(QWidget *parent) :
 #endif
 
    ui->songInstruments->setStyleSheet("QListView { background: #000000; color: #ffffff; }");
-   
-   // Connect buried signals.
-   QObject::connect(m_pDocument,SIGNAL(setModified(bool)),this,SIGNAL(editor_modificationChanged(bool)));
 }
 
 CMainFrame::~CMainFrame()
@@ -154,21 +137,56 @@ CMainFrame::~CMainFrame()
    delete toolBar;
 }
 
-CView* CMainFrame::GetActiveView()
+void CMainFrame::focusInEvent(QFocusEvent *)
 {
-   return m_pView;
+   m_pView->GetPatternView()->SetFocus(true);
+   m_pFrameEditor->SetFocus();
 }
 
 void CMainFrame::showEvent(QShowEvent *)
 {
-   theApp.GetSoundGenerator()->start();
-
    emit addToolBarWidget(toolBar);
+   toolBar->setVisible(true);
+
+   if ( !initialized )
+   {
+      // Perform initialization that couldn't yet be done in the constructor due to MFC crap.
+      m_pDocument = (CFamiTrackerDoc*)GetActiveDocument();
+      m_pDocument->SetTitle("Untitled");
+      
+      m_pView = (CFamiTrackerView*)GetActiveView();
+      
+      // Create frame editor
+      m_pFrameEditor = new CFrameEditor(this);
+   
+      ui->songFrames->layout()->addWidget(m_pFrameEditor);
+      
+      ui->songPatterns->layout()->addWidget(m_pView);
+   
+      m_pFrameEditor->setFocusPolicy(Qt::StrongFocus);
+      m_pView->setFocusPolicy(Qt::StrongFocus);
+      
+      QObject::connect(m_pDocument,SIGNAL(updateViews(long)),m_pFrameEditor,SLOT(updateViews(long)));
+      
+      m_pView->OnInitialUpdate();
+      
+      // Connect buried signals.
+      QObject::connect(m_pDocument,SIGNAL(setModified(bool)),this,SIGNAL(editor_modificationChanged(bool)));
+      
+      initialized = true;
+   }
+   setFocus();
 }
 
 void CMainFrame::hideEvent(QHideEvent *)
 {
    emit removeToolBarWidget(toolBar);
+}
+
+void CMainFrame::resizeEvent(QResizeEvent *)
+{
+   if ( m_pFrameEditor )
+      ResizeFrameWindow();
 }
 
 void CMainFrame::trackerAction_triggered()
@@ -198,19 +216,22 @@ void CMainFrame::trackerAction_saveDocument()
 void CMainFrame::trackerAction_editCut()
 {
    qDebug("editCut");
-   m_pView->OnEditCut();
+   CFamiTrackerView* pView = (CFamiTrackerView*)GetActiveView();
+   pView->OnEditCut();
 }
 
 void CMainFrame::trackerAction_editCopy()
 {
    qDebug("editCopy");
-   m_pView->OnEditCopy();
+   CFamiTrackerView* pView = (CFamiTrackerView*)GetActiveView();
+   pView->OnEditCopy();
 }
 
 void CMainFrame::trackerAction_editPaste()
 {
    qDebug("editPaste");
-   m_pView->OnEditPaste();   
+   CFamiTrackerView* pView = (CFamiTrackerView*)GetActiveView();
+   pView->OnEditPaste();   
 }
 
 void CMainFrame::trackerAction_about()
@@ -260,28 +281,32 @@ void CMainFrame::trackerAction_moduleProperties()
 //   ui->songs->clear();
 //   ui->songs->addItems(dlg.tracks());
    
-//   instrumentsModel->update();
+   instrumentsModel->update();
 }
 
 void CMainFrame::trackerAction_play()
 {
    qDebug("play");
+   theApp.OnTrackerPlay();
 }
 
 void CMainFrame::trackerAction_playLoop()
 {
    qDebug("playLoop");
+   theApp.OnTrackerPlaypattern();
 }
 
 void CMainFrame::trackerAction_stop()
 {
    qDebug("stop");
+   theApp.OnTrackerStop();
 }
 
 void CMainFrame::trackerAction_editMode()
 {
    qDebug("editMode");
-   m_pView->OnTrackerEdit();
+   CFamiTrackerView* pView = (CFamiTrackerView*)GetActiveView();
+   pView->OnTrackerEdit();
 }
 
 void CMainFrame::trackerAction_previousTrack()
@@ -308,32 +333,24 @@ void CMainFrame::trackerAction_createNSF()
 
 void CMainFrame::on_frameInc_clicked()
 {
-   qDebug("CheckRepeat?");
-	int Add = 1;//(CheckRepeat() ? 4 : 1);
-   CFrameAction *pAction = new CFrameAction(ui->frameChangeAll->isChecked() ? CFrameAction::ACT_CHANGE_PATTERN_ALL : CFrameAction::ACT_CHANGE_PATTERN);
-	pAction->SetPatternDelta(Add, ui->frameChangeAll->isChecked());
-	AddAction(pAction);
+   CFamiTrackerView* pView = (CFamiTrackerView*)GetActiveView();
+   pView->IncreaseCurrentPattern();
 }
 
 void CMainFrame::on_frameDec_clicked()
 {
-   qDebug("CheckRepeat?");
-	int Remove = 1;//(CheckRepeat() ? 4 : 1);
-   CFrameAction *pAction = new CFrameAction(ui->frameChangeAll->isChecked() ? CFrameAction::ACT_CHANGE_PATTERN_ALL : CFrameAction::ACT_CHANGE_PATTERN);
-	pAction->SetPatternDelta(Remove, ui->frameChangeAll->isChecked());
-	AddAction(pAction);
+   CFamiTrackerView* pView = (CFamiTrackerView*)GetActiveView();
+   pView->DecreaseCurrentPattern();
 }
 
 void CMainFrame::on_speed_valueChanged(int arg1)
 {
-   CFamiTrackerDoc* pDoc = GetDocument();
-   pDoc->SetSongSpeed(arg1);
+	SetSpeed(arg1);
 }
 
 void CMainFrame::on_tempo_valueChanged(int arg1)
 {
-   CFamiTrackerDoc* pDoc = GetDocument();
-   pDoc->SetSongTempo(arg1);
+   SetTempo(arg1);
 }
 
 void CMainFrame::on_numRows_valueChanged(int NewRows)
@@ -348,7 +365,7 @@ void CMainFrame::on_numFrames_valueChanged(int NewFrames)
 
 void CMainFrame::on_songs_currentIndexChanged(int index)
 {
-   CFamiTrackerDoc* pDoc = GetDocument();
+   CFamiTrackerDoc* pDoc = (CFamiTrackerDoc*)GetActiveDocument();
    if ( index >= 0 )
    {
       pDoc->SelectTrack(index);
@@ -364,19 +381,19 @@ void CMainFrame::on_songs_currentIndexChanged(int index)
 
 void CMainFrame::on_title_textEdited(const QString &arg1)
 {
-   CFamiTrackerDoc* pDoc = GetDocument();
+   CFamiTrackerDoc* pDoc = (CFamiTrackerDoc*)GetActiveDocument();
    pDoc->SetSongName(arg1.toLatin1().data());
 }
 
 void CMainFrame::on_author_textEdited(const QString &arg1)
 {
-   CFamiTrackerDoc* pDoc = GetDocument();
+   CFamiTrackerDoc* pDoc = (CFamiTrackerDoc*)GetActiveDocument();
    pDoc->SetSongArtist(arg1.toLatin1().data());
 }
 
 void CMainFrame::on_copyright_textEdited(const QString &arg1)
 {
-   CFamiTrackerDoc* pDoc = GetDocument();
+   CFamiTrackerDoc* pDoc = (CFamiTrackerDoc*)GetActiveDocument();
    pDoc->SetSongCopyright(arg1.toLatin1().data());
 }
 
@@ -384,7 +401,34 @@ void CMainFrame::setFileName(QString fileName)
 {
    m_fileName = fileName;
 
-   GetDocument()->OnOpenDocument((TCHAR*)fileName.toLatin1().constData());
+   GetActiveDocument()->OnOpenDocument((TCHAR*)fileName.toLatin1().constData());
+   
+   instrumentsModel->setDocument((CFamiTrackerDoc*)GetActiveDocument());
+   instrumentsModel->update();
+}
+
+void CMainFrame::SetTempo(int Tempo)
+{
+	CFamiTrackerDoc *pDoc = static_cast<CFamiTrackerDoc*>(GetActiveDocument());
+	int MinTempo = pDoc->GetSpeedSplitPoint();
+	LIMIT(Tempo, MAX_TEMPO, MinTempo);
+	pDoc->SetSongTempo(Tempo);
+	theApp.GetSoundGenerator()->ResetTempo();
+
+//	if (m_wndDialogBar.GetDlgItemInt(IDC_TEMPO) != Tempo)
+//		m_wndDialogBar.SetDlgItemInt(IDC_TEMPO, Tempo, FALSE);
+}
+
+void CMainFrame::SetSpeed(int Speed)
+{
+	CFamiTrackerDoc *pDoc = static_cast<CFamiTrackerDoc*>(GetActiveDocument());
+	int MaxSpeed = pDoc->GetSpeedSplitPoint() - 1;
+	LIMIT(Speed, MaxSpeed, MIN_SPEED);
+	pDoc->SetSongSpeed(Speed);
+	theApp.GetSoundGenerator()->ResetTempo();
+
+//	if (m_wndDialogBar.GetDlgItemInt(IDC_SPEED) != Speed)
+//		m_wndDialogBar.SetDlgItemInt(IDC_SPEED, Speed, FALSE);
 }
 
 void CMainFrame::SetRowCount(int Count)
@@ -585,29 +629,28 @@ void CMainFrame::SetSongInfo(char *Name, char *Artist, char *Copyright)
 
 void CMainFrame::UpdateTrackBox()
 {
-   qDebug("UpdateTrackBox");
-//	// Fill the track box with all songs
-//	CComboBox		*pTrackBox	= (CComboBox*)ui->songs;
-////	CComboBox		*pTrackBox	= (CComboBox*)m_wndDialogBar.GetDlgItem(IDC_SUBTUNE);
-//	CFamiTrackerDoc	*pDoc		= (CFamiTrackerDoc*)GetActiveDocument();
-//	CString			Text;
+	// Fill the track box with all songs
+	CComboBox		*pTrackBox	= (CComboBox*)ui->songs;
+//	CComboBox		*pTrackBox	= (CComboBox*)m_wndDialogBar.GetDlgItem(IDC_SUBTUNE);
+	CFamiTrackerDoc	*pDoc		= (CFamiTrackerDoc*)GetActiveDocument();
+	CString			Text;
 
-//	ASSERT(pTrackBox != NULL);
-//	ASSERT(pDoc != NULL);
+	ASSERT(pTrackBox != NULL);
+	ASSERT(pDoc != NULL);
 
-//	pTrackBox->ResetContent();
+	pTrackBox->ResetContent();
 
-//	int Count = pDoc->GetTrackCount();
+	int Count = pDoc->GetTrackCount();
 
-//	for (int i = 0; i < Count; ++i) {
-//		Text.Format(_T("#%i %s"), i + 1, pDoc->GetTrackTitle(i));
-//		pTrackBox->AddString(Text);
-//	}
+	for (int i = 0; i < Count; ++i) {
+		Text.Format(_T("#%i %s"), i + 1, pDoc->GetTrackTitle(i));
+		pTrackBox->AddString(Text);
+	}
 
-//	if (m_iTrack >= Count)
-//		m_iTrack = Count - 1;
+	if (m_iTrack >= Count)
+		m_iTrack = Count - 1;
 
-//	pTrackBox->SetCurSel(m_iTrack);
+	pTrackBox->SetCurSel(m_iTrack);
 }
 
 void CMainFrame::ChangedTrack()
@@ -674,3 +717,74 @@ void CMainFrame::OnModuleMoveframeup()
 	AddAction(new CFrameAction(CFrameAction::ACT_MOVE_UP));
 }
 
+
+void CMainFrame::ResizeFrameWindow()
+{
+	// Called when the number of channels has changed
+	ASSERT(m_pFrameEditor != NULL);
+
+	CFamiTrackerDoc *pDocument = (CFamiTrackerDoc*)GetActiveDocument();
+
+	if (pDocument != NULL) {
+
+		int Channels = pDocument->GetAvailableChannels();
+		int Chip = pDocument->GetExpansionChip();
+		int Height(0), Width(0);
+
+		// Located to the right
+		if (m_iFrameEditorPos == FRAME_EDIT_POS_TOP) {
+			// Frame editor window
+			Height = 161;
+			Width = CFrameEditor::FIXED_WIDTH + CFrameEditor::FRAME_ITEM_WIDTH * Channels;
+
+			m_pFrameEditor->MoveWindow(SX(12), SY(12), SX(Width), SY(Height));
+
+//			// Move frame controls
+//			m_wndFrameControls.MoveWindow(SX(10), SY(Height) + SY(21), SX(150), SY(26));
+		}
+		// Located to the left
+		else {
+//			// Frame editor window
+//			CRect rect;
+//			m_wndVerticalControlBar.GetClientRect(&rect);
+
+//			Height = rect.Height() - HEADER_HEIGHT - 2;
+//			Width = CFrameEditor::FIXED_WIDTH + CFrameEditor::FRAME_ITEM_WIDTH * Channels;
+
+//			m_pFrameEditor->MoveWindow(SX(2), SY(HEADER_HEIGHT + 1), SX(Width), SY(Height));
+
+//			// Move frame controls
+//			m_wndFrameControls.MoveWindow(SX(4), SY(10), SX(150), SY(26));
+		}
+
+//		// Vertical control bar
+//		m_wndVerticalControlBar.m_sizeDefault.cx = SX(54) + SX(CFrameEditor::FRAME_ITEM_WIDTH * Channels);
+//		m_wndVerticalControlBar.CalcFixedLayout(TRUE, FALSE);
+//		RecalcLayout();
+	}
+
+//	CRect ChildRect, ParentRect, FrameEditorRect, FrameBarRect;
+
+//	m_wndControlBar.GetClientRect(&ParentRect);
+//	m_pFrameEditor->GetClientRect(&FrameEditorRect);
+
+//	int DialogStartPos;
+
+//	if (m_iFrameEditorPos == FRAME_EDIT_POS_TOP)
+//		DialogStartPos = FrameEditorRect.right + 32;
+//	else
+//		DialogStartPos = 0;
+
+//	m_wndDialogBar.MoveWindow(DialogStartPos, 2, ParentRect.Width() - DialogStartPos, ParentRect.Height() - 4);
+//	m_wndDialogBar.GetWindowRect(&ChildRect);
+//	m_wndDialogBar.GetDlgItem(IDC_INSTRUMENTS)->MoveWindow(SX(288), SY(10), ChildRect.Width() - SX(296), SY(158));
+//	m_wndDialogBar.GetDlgItem(IDC_INSTNAME)->MoveWindow(SX(478), SY(175), ChildRect.Width() - SX(486), SY(22));
+
+	m_pFrameEditor->RedrawWindow();
+}
+
+void CMainFrame::on_frameChangeAll_clicked(bool checked)
+{
+   CFamiTrackerView* pView = (CFamiTrackerView*)GetActiveView();
+   pView->SetChangeAllPattern(checked);
+}

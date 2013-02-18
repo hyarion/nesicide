@@ -1,17 +1,22 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include "FamiTracker.h"
+
 #include <QFileInfo>
 #include <QUrl>
 #include <QMimeData>
 
 MainWindow::MainWindow(QWidget *parent) :
-      QMainWindow(parent),
-      ui(new Ui::MainWindow)
+   QMainWindow(parent),
+   ui(new Ui::MainWindow)
 {
    ui->setupUi(this);
    
-   m_pMainFrame = new CMainFrame();
+   // CPTODO: this is a hack
+   theApp.InitInstance();
+   
+   m_pMainFrame = (CMainFrame*)theApp.m_pMainWnd;
    setCentralWidget(m_pMainFrame);
    
    QObject::connect(m_pMainFrame,SIGNAL(addToolBarWidget(QToolBar*)),this,SLOT(addToolBarWidget(QToolBar*)));
@@ -21,14 +26,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+   // TODO: Handle unsaved documents or other pre-close stuffs
+   theApp.ExitInstance();
+
    delete ui;
-   delete m_pMainFrame;
 }
 
 void MainWindow::on_actionExit_triggered()
 {
-   // TODO: Handle unsaved documents or other pre-close stuffs
-
    // Closing the main window kills the app
    close();
 }
