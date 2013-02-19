@@ -148,7 +148,8 @@ HEADERS += \
     FFT/Complex.h \
     ../../common/cqtmfc.h \
     FamiTrackerView.h \
-    FamiTracker.h
+    FamiTracker.h \
+    stdafx.h
 
 symbian {
     MMP_RULES += EXPORTUNFROZEN
