@@ -179,6 +179,8 @@ public:
    CString(LPCWSTR str);
    virtual ~CString();
 
+   void UpdateScratch();
+
    void AppendFormat(LPCTSTR fmt, ...);
    void AppendFormatV(LPCTSTR fmt, va_list ap);
    void Format(LPCTSTR fmt, ...);
@@ -199,7 +201,7 @@ public:
    bool operator==(const CString& str) const;
    //operator const char*() const;
    operator const QString&() const;
-   operator const LPTSTR() const;
+   operator LPCTSTR() const;
 
    void Empty();
    LPCTSTR GetString() const;
@@ -212,6 +214,7 @@ public:
    
 private:
    QString _qstr;
+   QByteArray _qstrn;
 };
 
 class CStringArray
