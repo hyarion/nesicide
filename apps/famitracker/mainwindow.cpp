@@ -93,3 +93,4 @@ void MainWindow::dropEvent(QDropEvent *event)
       }
    }
 }
+
