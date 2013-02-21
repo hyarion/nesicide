@@ -9,6 +9,7 @@
 #include <QFrame>
 #include <QLayout>
 #include <QAction>
+#include <QFileDialog>
 
 // DPI variables
 static const int DEFAULT_DPI = 96;
@@ -218,6 +219,10 @@ void CMainFrame::trackerAction_newDocument()
 void CMainFrame::trackerAction_openDocument()
 {
    qDebug("openDocument");
+   QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
+                                                    "",
+                                                    tr("Files (*.ftm)"));
+   setFileName(fileName);
 }
 
 void CMainFrame::trackerAction_saveDocument()
