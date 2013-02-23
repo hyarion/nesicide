@@ -218,7 +218,7 @@ unix:mac {
 
 	# stdafx.h
 	NIX_CFLAGS += -I $$DEPENDENCYPATH
-	NIX_CFLAGS += -I $$DEPENDENCYPATH/stdafxhack
+	NIX_CFLAGS += -I $$DEPENDENCYPATH/stdafxhack -include commonfix.h
     #HEADERS += $$DEPENDENCYPATH/stdafx.h
 
 	QMAKE_CFLAGS   += $$NIX_CFLAGS
