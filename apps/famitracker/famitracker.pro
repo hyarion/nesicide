@@ -64,7 +64,7 @@ mac {
    SDL_CXXFLAGS = -I$$DEPENDENCYPATH/SDL.framework/Headers
    SDL_LIBS = -F$$DEPENDENCYPATH -framework SDL
 
-   #ICON = mac/resources/nesicide.icns
+   ICON = mac/resources/Famitracker.svg
 
    QMAKE_POST_LINK += mkdir -p $${DESTDIR}/$${TARGET}.app/Contents/Frameworks $$escape_expand(\\n\\t)
 
