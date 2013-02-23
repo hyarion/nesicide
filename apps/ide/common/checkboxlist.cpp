@@ -11,7 +11,12 @@
 ///////////////////////////////////////////////////////////
 
 #include "checkboxlist.h"
-#include <QtWidgets>
+#include <QWidget>
+#include <QItemDelegate>
+#include <QApplication>
+#include <QCheckbox>
+#include <QAbstractItemView>
+#include <QStylePainter>
 
 
 // internal private delegate
