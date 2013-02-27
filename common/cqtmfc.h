@@ -100,6 +100,7 @@
 #define DECLARE_DYNCREATE(x) 
 #define DECLARE_MESSAGE_MAP()
 #define DECLARE_DYNAMIC(x)
+#define IMPLEMENT_DYNAMIC(x,y)
 
 #define IDR_MAINFRAME 0xDEADBEEF
 #define RUNTIME_CLASS(x) new x
@@ -156,7 +157,6 @@ BOOL WINAPI GlobalUnlock(
 SIZE_T WINAPI GlobalSize(
   HGLOBAL hMem
 );
-
 
 class CObject
 {
@@ -311,7 +311,10 @@ public:
       x = _x;
       y = _y;
    }
-
+   bool operator==(CPoint p)
+   {
+      return ((p.x == x) && (p.y == y));
+   }
 };
 
 class CRect
@@ -535,6 +538,8 @@ public:
       delete _qpainter;
       _qpainter = NULL;
    }
+   
+   QPainter* painter() { return _qpainter; }
    
    virtual ~CDC();
    BOOL BitBlt(
@@ -801,6 +806,8 @@ public:
    UINT_PTR mfcTimerId(int qtTimerId) { return qtToMfcTimer.value(qtTimerId); }
    CFrameWnd* GetParentFrame( ) const { return m_pFrameWnd; }
    void MoveWindow(int x,int y,int cx, int cy) { setFixedWidth(cx); }
+   CDC* GetDC() { CDC* pDC = new CDC(); pDC->attach(this); return pDC; }
+   void ReleaseDC(CDC* pDC) { pDC->detach(); delete pDC; }
    
    // These methods are only to be used in CDocTemplate initialization...
    void privateSetParentFrame(CFrameWnd* pFrameWnd) { m_pFrameWnd = pFrameWnd; }
@@ -898,7 +905,7 @@ public:
       LPARAM lParam 
          );
    virtual BOOL InitInstance() { return FALSE; }
-   virtual BOOL ExitInstance() {}
+   virtual BOOL ExitInstance() { return FALSE; }
 signals:
    void postThreadMessage(unsigned int m,unsigned int w,unsigned int l);
 public slots:
@@ -938,7 +945,7 @@ public:
 class CWinApp : public CWinThread
 {
 public:
-   CWinApp() : m_pDocTemplate(NULL), m_pMainWnd(NULL) {}
+   CWinApp() : m_pMainWnd(NULL), m_pDocTemplate(NULL) {}
    void AddDocTemplate(CDocTemplate* pDocTemplate) { m_pDocTemplate = pDocTemplate; }
    CDocTemplate* GetDocTemplate() const { return m_pDocTemplate; }
    virtual BOOL InitInstance();
@@ -947,5 +954,21 @@ public:
 protected:
    CDocTemplate* m_pDocTemplate;
 };
+
+int StretchDIBits(
+  CDC& dc,
+  int XDest,
+  int YDest,
+  int nDestWidth,
+  int nDestHeight,
+  int XSrc,
+  int YSrc,
+  int nSrcWidth,
+  int nSrcHeight,
+  const VOID *lpBits,
+  const BITMAPINFO *lpBitsInfo,
+  UINT iUsage,
+  DWORD dwRop
+);
 
 #endif // CQTMFC_H

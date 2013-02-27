@@ -117,7 +117,10 @@ SOURCES += \
     ../../common/cqtmfc.cpp \
     FamiTrackerView.cpp \
     FamiTracker.cpp \
-    DirectSound.cpp
+    DirectSound.cpp \
+    SWSpectrum.cpp \
+    SWSampleScope.cpp \
+    SampleWindow.cpp
 
 HEADERS += \
     TrackerChannel.h \
@@ -187,7 +190,10 @@ HEADERS += \
     FamiTracker.h \
     stdafx.h \
     DirectSound.h \
-    resource.h
+    resource.h \
+    SWSpectrum.h \
+    SWSampleScope.h \
+    SampleWindow.h
 
 symbian {
     MMP_RULES += EXPORTUNFROZEN

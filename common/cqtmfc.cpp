@@ -755,6 +755,28 @@ BOOL CDC::BitBlt(
 {
    return TRUE;
 }
+
+int StretchDIBits(
+  CDC& dc,
+  int XDest,
+  int YDest,
+  int nDestWidth,
+  int nDestHeight,
+  int XSrc,
+  int YSrc,
+  int nSrcWidth,
+  int nSrcHeight,
+  const VOID *lpBits,
+  const BITMAPINFO *lpBitsInfo,
+  UINT iUsage,
+  DWORD dwRop
+)
+{
+   QImage image((const uchar*)lpBits,nSrcWidth,nSrcHeight,QImage::Format_RGB32);
+   image = image.scaled(nDestWidth,nDestHeight);
+   dc.painter()->drawImage(XDest,YDest,image);
+}
+
 void CDC::Draw3dRect( int x, int y, int cx, int cy, COLORREF clrTopLeft, COLORREF clrBottomRight )
 {
    QPen tlc(QColor(GetRValue(clrTopLeft),GetGValue(clrTopLeft),GetBValue(clrTopLeft)));
@@ -783,10 +805,9 @@ int CDC::DrawText(
    QString qstr(str.GetBuffer());
 #endif
    _qpainter->setPen(QPen(_textColor));
-   _qpainter->setFont((QFont)*_font);
+//   _qpainter->setFont((QFont)*_font);
    _qpainter->drawText(rect,qstr.toLatin1().constData());
-   return strlen(str.GetBuffer());
-   
+   return strlen(str.GetBuffer());   
 }
 void CDC::FillSolidRect(
    LPCRECT lpRect,
@@ -885,19 +906,18 @@ BOOL CDC::TextOut(
    int nCount 
 )
 {
-   QRect rect;
 #if UNICODE
    QString qstr = QString::fromWCharArray(lpszString);
 #else
    QString qstr(lpszString);
 #endif
    QFontMetrics fontMetrics((QFont)*_font);
-   rect.setTopLeft(QPoint(x,y));
-   rect.setBottomRight(QPoint(x+fontMetrics.size(Qt::TextSingleLine,qstr.left(nCount)).width()+10,y+fontMetrics.height()));
-   rect.translate(-QPoint(_windowOrg.x,_windowOrg.y));
    _qpainter->setPen(QPen(_textColor));
-   _qpainter->setFont((QFont)*_font);
-   _qpainter->drawText(rect,qstr.left(nCount).toLatin1().constData());
+//   _qpainter->setFont((QFont)*_font);
+   x += -_windowOrg.x;
+   y += -_windowOrg.y;
+   y += fontMetrics.height()-1;
+   _qpainter->drawText(x,y,qstr.left(nCount));
    return TRUE;
 }
 BOOL CDC::TextOut(
@@ -906,14 +926,13 @@ BOOL CDC::TextOut(
       const CString& str 
 )
 {
-   QRect rect;
    QFontMetrics fontMetrics((QFont)*_font);
-   rect.setTopLeft(QPoint(x,y));
-   rect.setBottomRight(QPoint(x+fontMetrics.size(Qt::TextSingleLine,(const QString&)str).width()+10,y+fontMetrics.height()));
-   rect.translate(-QPoint(_windowOrg.x,_windowOrg.y));
    _qpainter->setPen(QPen(_textColor));
-   _qpainter->setFont((QFont)*_font);
-   _qpainter->drawText(rect,(const QString&)str);
+//   _qpainter->setFont((QFont)*_font);
+   x += -_windowOrg.x;
+   y += -_windowOrg.y;
+   y += fontMetrics.height()-1;
+   _qpainter->drawText(x,y,(const QString&)str);
    return TRUE;
 }
 
